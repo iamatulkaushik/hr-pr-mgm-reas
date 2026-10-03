@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Hrms.DAL</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hrms.Common\Hrms.Common.vbproj" />
+    <ProjectReference Include="..\Hrms.Models\Hrms.Models.vbproj" />
+  </ItemGroup>
+</Project>

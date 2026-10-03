@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\installer\**\*" Exclude="..\..\installer\Output\**" />
+  </ItemGroup>
+</Project>
