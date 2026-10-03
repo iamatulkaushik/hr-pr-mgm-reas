@@ -1,0 +1,32 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+TestResults/
+installer/Output/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# Databases and backups: never in Git
+*.mdf
+*.ldf
+*.ndf
+*.bak
+*.trn
+
+# Logs and temp
+*.log
+Logs/
+*.tmp
+
+# Secrets and keys
+*.pfx
+*.snk
+*.key
+appsettings.Local.*
+.env

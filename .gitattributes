@@ -1,0 +1,26 @@
+* text=auto
+
+# Source
+*.vb        text diff
+*.vbproj    text
+*.props     text
+*.sln       text eol=crlf
+*.sql       text
+*.ps1       text eol=crlf
+*.iss       text eol=crlf
+*.md        text
+*.editorconfig text
+
+# Designer files: never hand-merge. On conflict take one side and redo the UI change in Visual Studio.
+*.Designer.vb merge=binary
+*.resx        merge=binary
+
+# Binary
+*.rpt   binary
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.bak   binary
+*.mdf   binary
+*.ldf   binary
