@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Revolution.Hrms.Tests</RootNamespace>
+    <AssemblyName>Revolution.Hrms.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Test framework: xUnit (decided by Dev Sigma, recorded in docs/TESTING.md).
+         Floating versions so restore picks current ones. Pin them once restore works. -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+    <PackageReference Include="xunit" Version="2.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Revolution.Hrms.Common\Revolution.Hrms.Common.vbproj" />
+    <ProjectReference Include="..\..\src\Revolution.Hrms.Models\Revolution.Hrms.Models.vbproj" />
+    <ProjectReference Include="..\..\src\Revolution.Hrms.BLL\Revolution.Hrms.BLL.vbproj" />
+  </ItemGroup>
+
+  <!-- Tests that need Dev Brave's AuthService and PasswordHasher. When those are merged, run:
+       dotnet test -p:BraveMerged=true   (then delete this condition and move the files out of Pending). -->
+  <ItemGroup Condition="'$(BraveMerged)' != 'true'">
+    <Compile Remove="Pending\**" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,137 @@
+/* 0001_init.sql | Target: HRMS_Master | Idempotent | Dev Brave, Phase 1 */
+SET NOCOUNT ON;
+GO
+IF SCHEMA_ID(N'sec') IS NULL EXEC(N'CREATE SCHEMA sec AUTHORIZATION dbo');
+IF SCHEMA_ID(N'mst') IS NULL EXEC(N'CREATE SCHEMA mst AUTHORIZATION dbo');
+IF SCHEMA_ID(N'aud') IS NULL EXEC(N'CREATE SCHEMA aud AUTHORIZATION dbo');
+IF SCHEMA_ID(N'cfg') IS NULL EXEC(N'CREATE SCHEMA cfg AUTHORIZATION dbo');
+GO
+IF OBJECT_ID(N'cfg.SchemaVersion') IS NULL
+CREATE TABLE cfg.SchemaVersion(
+  SchemaVersionID INT IDENTITY(1,1) CONSTRAINT PK_SchemaVersion PRIMARY KEY,
+  ScriptName NVARCHAR(100) NOT NULL CONSTRAINT UQ_SchemaVersion_Script UNIQUE,
+  AppliedOn  DATETIME2(0)  NOT NULL CONSTRAINT DF_SchemaVersion_On DEFAULT SYSUTCDATETIME(),
+  AppliedBy  SYSNAME       NOT NULL CONSTRAINT DF_SchemaVersion_By DEFAULT SUSER_SNAME());
+GO
+IF OBJECT_ID(N'cfg.Setting') IS NULL
+CREATE TABLE cfg.Setting(
+  SettingKey   VARCHAR(50)    NOT NULL CONSTRAINT PK_Setting PRIMARY KEY,
+  SettingValue NVARCHAR(200)  NOT NULL,
+  Description  NVARCHAR(200)  NULL);
+GO
+IF OBJECT_ID(N'sec.Role') IS NULL
+CREATE TABLE sec.Role(
+  RoleID   INT IDENTITY(1,1) CONSTRAINT PK_Role PRIMARY KEY,
+  RoleName NVARCHAR(50) NOT NULL CONSTRAINT UQ_Role_Name UNIQUE,
+  UserType VARCHAR(10)  NOT NULL CONSTRAINT CK_Role_Type CHECK (UserType IN ('Associate','Company','Operator')),
+  IsActive BIT NOT NULL CONSTRAINT DF_Role_Active DEFAULT 1);
+GO
+IF OBJECT_ID(N'sec.Permission') IS NULL
+CREATE TABLE sec.Permission(
+  PermissionID INT IDENTITY(1,1) CONSTRAINT PK_Permission PRIMARY KEY,
+  Code   VARCHAR(60) NOT NULL CONSTRAINT UQ_Permission_Code UNIQUE,
+  Module VARCHAR(30) NOT NULL,
+  Action VARCHAR(30) NOT NULL,
+  Description NVARCHAR(150) NULL);
+GO
+IF OBJECT_ID(N'sec.RolePermission') IS NULL
+CREATE TABLE sec.RolePermission(
+  RoleID INT NOT NULL CONSTRAINT FK_RolePerm_Role REFERENCES sec.Role(RoleID),
+  PermissionID INT NOT NULL CONSTRAINT FK_RolePerm_Perm REFERENCES sec.Permission(PermissionID),
+  CONSTRAINT PK_RolePermission PRIMARY KEY (RoleID, PermissionID));
+GO
+IF OBJECT_ID(N'sec.[User]') IS NULL
+CREATE TABLE sec.[User](
+  UserID INT IDENTITY(1,1) CONSTRAINT PK_User PRIMARY KEY,
+  Username NVARCHAR(50)  NOT NULL CONSTRAINT UQ_User_Username UNIQUE,
+  FullName NVARCHAR(100) NOT NULL,
+  Email    NVARCHAR(150) NULL,
+  Mobile   VARCHAR(15)   NULL,
+  PasswordHash VARBINARY(64) NOT NULL,
+  Salt         VARBINARY(32) NOT NULL,
+  Iterations   INT NOT NULL,
+  RoleID   INT NOT NULL CONSTRAINT FK_User_Role REFERENCES sec.Role(RoleID),
+  UserType VARCHAR(10) NOT NULL CONSTRAINT CK_User_Type CHECK (UserType IN ('Associate','Company','Operator')),
+  FailedCount INT NOT NULL CONSTRAINT DF_User_Failed DEFAULT 0,
+  LockedUntil DATETIME2(0) NULL,          -- UTC
+  MustChangePwd BIT NOT NULL CONSTRAINT DF_User_MustChange DEFAULT 1,
+  LastLoginOn DATETIME2(0) NULL,          -- UTC
+  IsActive BIT NOT NULL CONSTRAINT DF_User_Active DEFAULT 1,
+  CreatedBy INT NULL, CreatedOn DATETIME2(0) NOT NULL CONSTRAINT DF_User_CreatedOn DEFAULT SYSUTCDATETIME(),
+  ModifiedBy INT NULL, ModifiedOn DATETIME2(0) NULL);
+GO
+IF OBJECT_ID(N'mst.States') IS NULL
+CREATE TABLE mst.States(
+  StateID INT IDENTITY(1,1) CONSTRAINT PK_States PRIMARY KEY,
+  StateCode CHAR(2) NOT NULL CONSTRAINT UQ_States_Code UNIQUE,   -- GST state code
+  StateName NVARCHAR(60) NOT NULL CONSTRAINT UQ_States_Name UNIQUE,
+  IsActive BIT NOT NULL CONSTRAINT DF_States_Active DEFAULT 1);
+GO
+IF OBJECT_ID(N'mst.District') IS NULL
+CREATE TABLE mst.District(
+  DistrictID INT IDENTITY(1,1) CONSTRAINT PK_District PRIMARY KEY,
+  StateID INT NOT NULL CONSTRAINT FK_District_State REFERENCES mst.States(StateID),
+  DistrictName NVARCHAR(60) NOT NULL,
+  IsActive BIT NOT NULL CONSTRAINT DF_District_Active DEFAULT 1,
+  CONSTRAINT UQ_District UNIQUE (StateID, DistrictName));
+GO
+IF OBJECT_ID(N'mst.Banks') IS NULL
+CREATE TABLE mst.Banks(
+  BankID INT IDENTITY(1,1) CONSTRAINT PK_Banks PRIMARY KEY,
+  BankName NVARCHAR(100) NOT NULL CONSTRAINT UQ_Banks_Name UNIQUE,
+  IsActive BIT NOT NULL CONSTRAINT DF_Banks_Active DEFAULT 1);
+GO
+IF OBJECT_ID(N'mst.Company') IS NULL
+CREATE TABLE mst.Company(
+  CompanyID INT IDENTITY(1,1) CONSTRAINT PK_Company PRIMARY KEY,
+  CompanyCode NVARCHAR(20)  NOT NULL CONSTRAINT UQ_Company_Code UNIQUE,
+  CompanyName NVARCHAR(150) NOT NULL,
+  AddressLine1 NVARCHAR(150) NULL, AddressLine2 NVARCHAR(150) NULL, City NVARCHAR(60) NULL,
+  DistrictID INT NULL CONSTRAINT FK_Company_District REFERENCES mst.District(DistrictID),
+  StateID    INT NULL CONSTRAINT FK_Company_State    REFERENCES mst.States(StateID),
+  Pincode CHAR(6) NULL CONSTRAINT CK_Company_Pin CHECK (Pincode IS NULL OR Pincode LIKE '[1-9][0-9][0-9][0-9][0-9][0-9]'),
+  Phone VARCHAR(15) NULL, Email NVARCHAR(150) NULL, ContactPerson NVARCHAR(100) NULL,
+  IsActive BIT NOT NULL CONSTRAINT DF_Company_Active DEFAULT 1,
+  CreatedBy INT NULL, CreatedOn DATETIME2(0) NOT NULL CONSTRAINT DF_Company_CreatedOn DEFAULT SYSUTCDATETIME(),
+  ModifiedBy INT NULL, ModifiedOn DATETIME2(0) NULL);
+GO
+IF OBJECT_ID(N'mst.CompanyStatuary') IS NULL
+CREATE TABLE mst.CompanyStatuary(
+  CompanyID INT NOT NULL CONSTRAINT PK_CompanyStatuary PRIMARY KEY CONSTRAINT FK_CompStat_Company REFERENCES mst.Company(CompanyID),
+  ShopActNo VARCHAR(30) NULL, ShopActDate DATE NULL,
+  GSTNo VARCHAR(15) NULL, GSTDate DATE NULL,
+  EPFRegnNo VARCHAR(30) NULL, EPFRegnDate DATE NULL,
+  ESIRegnNo VARCHAR(30) NULL, ESIRegnDate DATE NULL,
+  LabourRegnNo VARCHAR(30) NULL, LabourRegnDate DATE NULL,
+  PSARARegnNo VARCHAR(30) NULL, PSARARegnDate DATE NULL,
+  ModifiedBy INT NULL, ModifiedOn DATETIME2(0) NULL);
+GO
+IF OBJECT_ID(N'sec.UserCompany') IS NULL
+CREATE TABLE sec.UserCompany(
+  UserCompanyID INT IDENTITY(1,1) CONSTRAINT PK_UserCompany PRIMARY KEY,
+  UserID    INT NOT NULL CONSTRAINT FK_UserCompany_User    REFERENCES sec.[User](UserID),
+  CompanyID INT NOT NULL CONSTRAINT FK_UserCompany_Company REFERENCES mst.Company(CompanyID),
+  IsActive BIT NOT NULL CONSTRAINT DF_UserCompany_Active DEFAULT 1,
+  CreatedBy INT NULL, CreatedOn DATETIME2(0) NOT NULL CONSTRAINT DF_UserCompany_CreatedOn DEFAULT SYSUTCDATETIME(),
+  CONSTRAINT UQ_UserCompany UNIQUE (UserID, CompanyID));
+GO
+IF OBJECT_ID(N'aud.AuditLog') IS NULL
+CREATE TABLE aud.AuditLog(
+  AuditID BIGINT IDENTITY(1,1) CONSTRAINT PK_AuditLog PRIMARY KEY,
+  EventTime DATETIME2(3) NOT NULL CONSTRAINT DF_Audit_Time DEFAULT SYSUTCDATETIME(),
+  UserID INT NULL, Username NVARCHAR(50) NULL, CompanyID INT NULL,
+  MachineName NVARCHAR(100) NULL,
+  Action VARCHAR(40) NOT NULL,
+  TableName VARCHAR(80) NULL, RecordKey NVARCHAR(100) NULL,
+  OldValue NVARCHAR(MAX) NULL, NewValue NVARCHAR(MAX) NULL, Detail NVARCHAR(500) NULL);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_UserCompany_Company' AND object_id=OBJECT_ID(N'sec.UserCompany'))
+  CREATE INDEX IX_UserCompany_Company ON sec.UserCompany(CompanyID);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_Audit_Time' AND object_id=OBJECT_ID(N'aud.AuditLog'))
+  CREATE INDEX IX_Audit_Time ON aud.AuditLog(EventTime);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_Audit_User' AND object_id=OBJECT_ID(N'aud.AuditLog'))
+  CREATE INDEX IX_Audit_User ON aud.AuditLog(UserID, EventTime);
+GO
+IF NOT EXISTS (SELECT 1 FROM cfg.SchemaVersion WHERE ScriptName=N'Master_0001_init')
+  INSERT cfg.SchemaVersion(ScriptName) VALUES (N'Master_0001_init');
+GO

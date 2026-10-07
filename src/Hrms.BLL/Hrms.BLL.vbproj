@@ -4,6 +4,9 @@
     <RootNamespace>Hrms.BLL</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Contracts\IAuthService.vb" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Hrms.Common\Hrms.Common.vbproj" />
     <ProjectReference Include="..\Hrms.Models\Hrms.Models.vbproj" />
     <ProjectReference Include="..\Hrms.DAL\Hrms.DAL.vbproj" />
